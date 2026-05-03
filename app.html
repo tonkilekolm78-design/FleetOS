@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FleetOS — Command Intelligence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;900&family=JetBrains+Mono:wght@300;400;500&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080c10;--surface:#0d1318;--surface2:#111920;--surface3:#162028;--border:rgba(255,255,255,0.07);--amber:#ffb400;--amber-dim:rgba(255,180,0,0.13);--amber-glow:rgba(255,180,0,0.04);--green:#00e676;--green-dim:rgba(0,230,118,0.12);--red:#ff4444;--red-dim:rgba(255,68,68,0.12);--blue:#4fc3f7;--blue-dim:rgba(79,195,247,0.12);--text:#e8edf2;--text-dim:#5a6e7d;--text-mid:#8fa3b3;--radius:5px;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,180,0,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,180,0,0.012) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:var(--bg);}
+.login-wrap{position:relative;z-index:1;width:100%;max-width:420px;padding:24px;animation:fadeUp 0.6s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeOut{from{opacity:1;transform:translateY(0);}to{opacity:0;transform:translateY(-20px);}}
+.login-logo{display:flex;align-items:center;gap:14px;margin-bottom:40px;justify-content:center;}
+.login-hex{width:44px;height:44px;background:var(--amber);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);animation:pulseHex 3s ease-in-out infinite;}
+@keyframes pulseHex{0%,100%{box-shadow:0 0 0 0 rgba(255,180,0,0.5);}50%{box-shadow:0 0 24px 6px rgba(255,180,0,0.2);}}
+.login-logo-text{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:32px;letter-spacing:4px;}
+.login-logo-text span{color:var(--amber);}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.login-head{padding:24px 28px 20px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.login-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:18px;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
+.login-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:2px;}
+.login-body{padding:28px;}
+.login-field{margin-bottom:20px;}
+.login-label{display:block;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px;}
+.login-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Barlow',sans-serif;font-size:14px;font-weight:300;padding:12px 16px;outline:none;transition:all 0.2s;}
+.login-input:focus{border-color:var(--amber);background:var(--amber-glow);}
+.login-input::placeholder{color:var(--text-dim);}
+.login-btn{width:100%;padding:14px;margin-top:8px;background:var(--amber);color:#000;border:none;border-radius:var(--radius);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:10px;}
+.login-btn:hover{filter:brightness(1.1);transform:translateY(-1px);}
+.login-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+.login-error{background:var(--red-dim);border:1px solid rgba(255,68,68,0.3);border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--red);display:none;}
+.login-error.show{display:block;}
+.login-hint{margin-top:20px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);}
+.hint-title{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:2px;margin-bottom:10px;}
+.hint-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;}
+.hint-row:last-child{border-bottom:none;}
+.hint-role{color:var(--text-dim);}
+.hint-creds{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--amber);}
+.use-btn{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;padding:3px 8px;border:1px solid var(--border);border-radius:2px;background:transparent;color:var(--text-dim);cursor:pointer;transition:all 0.2s;}
+.use-btn:hover{border-color:var(--amber);color:var(--amber);}
+.api-status{display:flex;align-items:center;gap:6px;margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:1px;justify-content:center;}
+.api-dot{width:6px;height:6px;border-radius:50%;background:var(--text-dim);}
+.api-dot.on{background:var(--green);animation:blink 1.4s infinite;}
+.api-dot.off{background:var(--red);}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.2;}}
+.spin-sm{width:16px;height:16px;border:2px solid rgba(0,0,0,0.3);border-top-color:#000;border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* APP */
+#app{display:none;position:relative;z-index:1;}
+header{position:sticky;top:0;z-index:200;background:rgba(8,12,16,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:58px;}
+.logo{display:flex;align-items:center;gap:11px;}
+.logo-hex{width:30px;height:30px;background:var(--amber);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);animation:pulseHex 3s ease-in-out infinite;}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:21px;letter-spacing:3px;}
+.logo-text span{color:var(--amber);}
+.hdr-right{display:flex;align-items:center;gap:16px;}
+.live-pill{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);letter-spacing:2px;background:var(--green-dim);padding:4px 10px;border-radius:20px;border:1px solid rgba(0,230,118,0.2);}
+.live-dot{width:5px;height:5px;background:var(--green);border-radius:50%;animation:blink 1.4s infinite;}
+#clock{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);}
+.user-pill{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;cursor:pointer;transition:all 0.2s;position:relative;}
+.user-pill:hover{border-color:rgba(255,180,0,0.3);}
+.u-avatar{width:22px;height:22px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;color:#000;}
+.u-info{display:flex;flex-direction:column;}
+.u-name{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-mid);letter-spacing:1px;}
+.u-role{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--amber);letter-spacing:1px;}
+.u-menu{position:absolute;top:calc(100% + 8px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:6px;min-width:150px;display:none;z-index:300;}
+.u-menu.open{display:block;}
+.u-menu-item{padding:8px 12px;font-size:12px;color:var(--text-mid);cursor:pointer;border-radius:3px;transition:all 0.15s;}
+.u-menu-item:hover{background:var(--surface2);color:var(--text);}
+.u-menu-item.danger{color:var(--red);}
+.u-menu-item.danger:hover{background:var(--red-dim);}
+
+nav{display:flex;padding:0 28px;background:var(--surface);border-bottom:1px solid var(--border);position:relative;z-index:10;}
+.nav-tab{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:12px;letter-spacing:2px;text-transform:uppercase;padding:14px 20px;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;display:flex;align-items:center;gap:8px;}
+.nav-tab:hover{color:var(--text-mid);}
+.nav-tab.active{color:var(--amber);border-bottom-color:var(--amber);}
+
+main{padding:24px 28px;position:relative;z-index:1;}
+.panel{display:none;}.panel.active{display:block;}
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden;transition:border-color 0.3s;}
+.kpi-card:hover{border-color:rgba(255,180,0,0.2);}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kc,var(--amber));}
+.kpi-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-dim);margin-bottom:10px;text-transform:uppercase;}
+.kpi-value{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:36px;line-height:1;color:var(--kc,var(--amber));margin-bottom:6px;}
+.kpi-delta{font-size:11px;color:var(--text-dim);}
+.d-up{color:var(--green);}.d-dn{color:var(--red);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--text-mid);}
+.badge{font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 7px;border-radius:2px;letter-spacing:1px;}
+.bg{background:var(--green-dim);color:var(--green);}
+.ba{background:var(--amber-dim);color:var(--amber);}
+.br{background:var(--red-dim);color:var(--red);}
+.bb{background:var(--blue-dim);color:var(--blue);}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.grid-7030{display:grid;grid-template-columns:1fr 310px;gap:16px;}
+.driver-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:all 0.15s;}
+.driver-item:last-child{border-bottom:none;}
+.driver-item:hover{background:rgba(255,180,0,0.02);margin:0 -20px;padding:11px 20px;}
+.d-avatar{width:34px;height:34px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;color:var(--amber);border:1px solid var(--border);flex-shrink:0;}
+.d-info{flex:1;min-width:0;}
+.d-name{font-size:13px;font-weight:500;margin-bottom:2px;}
+.d-meta{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:1px;}
+.d-st{font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 7px;border-radius:2px;letter-spacing:1px;flex-shrink:0;}
+.alert-strip{background:rgba(255,68,68,0.06);border:1px solid rgba(255,68,68,0.2);border-radius:var(--radius);padding:10px 16px;display:flex;align-items:center;gap:12px;margin-bottom:16px;font-size:12px;color:var(--text-mid);}
+.a-dot{color:var(--red);font-size:16px;animation:blink 1.4s infinite;}
+.map-area{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);position:relative;overflow:hidden;height:295px;}
+.map-inner{width:100%;height:100%;background:linear-gradient(rgba(255,180,0,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,180,0,0.03) 1px,transparent 1px),#0a1118;background-size:32px 32px,32px 32px;position:relative;}
+.map-label{position:absolute;top:10px;left:10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-dim);background:rgba(8,12,16,0.8);padding:4px 8px;border-radius:2px;border:1px solid var(--border);}
+.map-dot{position:absolute;width:10px;height:10px;border-radius:50%;border:2px solid;transform:translate(-50%,-50%);}
+.map-dot::after{content:'';position:absolute;width:20px;height:20px;border-radius:50%;border:1px solid;border-color:inherit;opacity:0.3;top:-5px;left:-5px;animation:ripple 2s ease-out infinite;}
+@keyframes ripple{0%{transform:scale(1);opacity:0.3;}100%{transform:scale(2.5);opacity:0;}}
+.gf{position:absolute;border-radius:50%;border:1px dashed rgba(255,180,0,0.2);background:rgba(255,180,0,0.02);transform:translate(-50%,-50%);}
+.gf-lbl{position:absolute;font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,180,0,0.5);white-space:nowrap;transform:translate(-50%,-160%);letter-spacing:1px;}
+.data-table{width:100%;border-collapse:collapse;font-size:12px;}
+.data-table th{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--text-dim);padding:9px 12px;border-bottom:1px solid var(--border);text-align:left;text-transform:uppercase;}
+.data-table td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,0.03);color:var(--text-mid);vertical-align:middle;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:rgba(255,255,255,0.01);}
+.cpk-row{display:grid;grid-template-columns:80px 1fr 55px;align-items:center;gap:10px;margin-bottom:11px;}
+.cpk-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-mid);}
+.cpk-track{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;}
+.cpk-fill{height:100%;border-radius:3px;}
+.cpk-val{font-family:'JetBrains Mono',monospace;font-size:10px;text-align:right;}
+.maint-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
+.maint-item:last-child{border-bottom:none;}
+.m-icon{width:34px;height:34px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.m-info{flex:1;}
+.m-name{font-size:12px;font-weight:500;margin-bottom:2px;}
+.m-detail{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:1px;}
+.m-km{font-family:'JetBrains Mono',monospace;font-size:10px;text-align:right;}
+.loading{display:flex;align-items:center;justify-content:center;padding:32px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;gap:10px;}
+.loading-spin{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--amber);border-radius:50%;animation:spin 0.7s linear infinite;}
+.btn{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:2px;font-size:11px;text-transform:uppercase;padding:8px 16px;border-radius:var(--radius);border:none;cursor:pointer;transition:all 0.2s;}
+.btn-a{background:var(--amber);color:#000;}.btn-a:hover{filter:brightness(1.1);}
+#toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 20px;font-size:12px;color:var(--text);z-index:2000;transform:translateY(20px);opacity:0;transition:all 0.3s;pointer-events:none;}
+#toast.show{transform:translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="login-logo">
+      <div class="login-hex"></div>
+      <span class="login-logo-text">FLEET<span>OS</span></span>
+    </div>
+    <div class="login-card">
+      <div class="login-head">
+        <div class="login-title">Command Intelligence Platform</div>
+        <div class="login-sub">// SECURE ACCESS — AUTHORISED PERSONNEL ONLY</div>
+      </div>
+      <div class="login-body">
+        <div class="login-error" id="login-error"></div>
+        <div class="login-field">
+          <label class="login-label">Username</label>
+          <input class="login-input" type="text" id="l-user" placeholder="Enter username" autocomplete="username">
+        </div>
+        <div class="login-field">
+          <label class="login-label">Password</label>
+          <input class="login-input" type="password" id="l-pass" placeholder="Enter password" autocomplete="current-password">
+        </div>
+        <button class="login-btn" id="login-btn" onclick="doLogin()">
+          <div class="spin-sm" id="l-spin"></div>
+          <span id="l-btn-txt">ACCESS FLEETOS</span>
+        </button>
+        <div id="api-url-setter" style="margin-bottom:16px;display:none;">
+        <label class="login-label">Custom API URL (if auto-detect fails)</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="custom-api" class="login-input" placeholder="http://localhost:3000" style="font-family:'JetBrains Mono',monospace;font-size:11px;">
+          <button onclick="setCustomApi()" style="padding:0 16px;background:var(--amber);color:#000;border:none;border-radius:var(--radius);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:1px;cursor:pointer;white-space:nowrap;">SET</button>
+        </div>
+      </div>
+      <div class="login-hint">
+          <div class="hint-title">// DEMO CREDENTIALS</div>
+          <div class="hint-row">
+            <span class="hint-role">Super Admin</span>
+            <span class="hint-creds">admin / admin123</span>
+            <button class="use-btn" onclick="fill('admin','admin123')">USE</button>
+          </div>
+          <div class="hint-row">
+            <span class="hint-role">Fleet Manager</span>
+            <span class="hint-creds">manager / manager123</span>
+            <button class="use-btn" onclick="fill('manager','manager123')">USE</button>
+          </div>
+          <div class="hint-row">
+            <span class="hint-role">Dispatcher</span>
+            <span class="hint-creds">dispatcher / dispatch123</span>
+            <button class="use-btn" onclick="fill('dispatcher','dispatch123')">USE</button>
+          </div>
+        </div>
+        <div class="api-status">
+          <div class="api-dot" id="api-dot"></div>
+          <span id="api-txt">Checking connection...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <header>
+    <div class="logo"><div class="logo-hex"></div><span class="logo-text">FLEET<span>OS</span></span></div>
+    <div class="hdr-right">
+      <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+      <div id="clock"></div>
+      <div class="user-pill" onclick="toggleMenu()">
+        <div class="u-avatar" id="u-av">A</div>
+        <div class="u-info">
+          <div class="u-name" id="u-name">--</div>
+          <div class="u-role" id="u-role">--</div>
+        </div>
+      </div>
+      <div class="u-menu" id="u-menu">
+        <div class="u-menu-item danger" onclick="logout()">⎋ Sign Out</div>
+      </div>
+    </div>
+  </header>
+  <nav>
+    <div class="nav-tab active" onclick="switchTab('ops',this)">⬡ Operations</div>
+    <div class="nav-tab" onclick="switchTab('admin',this)">◈ Administration</div>
+    <div class="nav-tab" onclick="switchTab('mgmt',this)">◎ Management</div>
+  </nav>
+  <main>
+    <!-- OPERATIONS -->
+    <div class="panel active" id="ops">
+      <div class="kpi-strip" id="ops-kpis"><div class="loading"><div class="loading-spin"></div>LOADING...</div></div>
+      <div id="ops-alert"></div>
+      <div class="grid-7030" style="margin-bottom:16px;">
+        <div class="map-area">
+          <div class="map-inner" id="map-inner">
+            <div class="gf" style="width:80px;height:80px;left:20%;top:65%;"><div class="gf-lbl">DEPOT A</div></div>
+            <div class="gf" style="width:65px;height:65px;left:65%;top:28%;"><div class="gf-lbl">DEPOT B</div></div>
+            <div class="gf" style="width:55px;height:55px;left:80%;top:65%;"><div class="gf-lbl">CLIENT X</div></div>
+            <div class="map-label">GEO-INTELLIGENCE // LIVE</div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-hdr"><span class="card-title">Driver Queue</span><span class="badge bg">LIVE</span></div>
+          <div id="driver-q"><div class="loading"><div class="loading-spin"></div></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">Active Loads</span><span class="badge ba" id="loads-ct">--</span></div>
+        <div id="loads-tbl"><div class="loading"><div class="loading-spin"></div></div></div>
+      </div>
+    </div>
+    <!-- ADMINISTRATION -->
+    <div class="panel" id="admin">
+      <div class="kpi-strip" id="admin-kpis"><div class="loading"><div class="loading-spin"></div>LOADING...</div></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Audit Log</span><span class="badge ba">AUTO-GENERATED</span></div>
+          <div id="audit-log"><div class="loading"><div class="loading-spin"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Payroll Register</span><span class="badge bg">CALCULATED</span></div>
+          <div id="payroll-tbl"><div class="loading"><div class="loading-spin"></div></div></div>
+          <div style="margin-top:14px;"><button class="btn btn-a" style="width:100%" onclick="calcPayroll()">RECALCULATE PAYROLL</button></div>
+        </div>
+      </div>
+    </div>
+    <!-- MANAGEMENT -->
+    <div class="panel" id="mgmt">
+      <div class="kpi-strip" id="mgmt-kpis"><div class="loading"><div class="loading-spin"></div>LOADING...</div></div>
+      <div class="grid-3" style="margin-bottom:16px;">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-hdr"><span class="card-title">Cost Per KM</span><span class="badge bb">BY ROUTE</span></div>
+          <div id="cpk-chart"><div class="loading"><div class="loading-spin"></div></div></div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-hdr"><span class="card-title">Maintenance</span><span class="badge br" id="maint-ct">--</span></div>
+          <div id="maint-list"><div class="loading"><div class="loading-spin"></div></div></div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-hdr"><span class="card-title">Cross-Check Alerts</span><span class="badge br" id="xcheck-ct">--</span></div>
+          <div id="xcheck-list"><div class="loading"><div class="loading-spin"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div id="toast"></div>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────────
+// Auto-detect API URL for Codespaces port forwarding
+// ── API URL: auto-detects Codespaces, localhost, or custom ──
+const API = (() => {
+  // Check if user stored a custom API URL
+  const stored = localStorage.getItem('fleetos_api');
+  if (stored) return stored;
+  const h = window.location.hostname;
+  const p = window.location.protocol;
+  // GitHub Codespaces — swap any port to 3000
+  if (h.includes('.app.github.dev')) {
+    // e.g. username-repo-xxxx-8080.app.github.dev -> -3000.
+    return p + '//' + h.replace(/-\d+\.app\.github\.dev/, '-3000.app.github.dev');
+  }
+  // Codespace preview URL patterns
+  if (h.includes('.preview.app.github.dev')) {
+    return p + '//' + h.replace(/-\d+\.preview/, '-3000.preview');
+  }
+  // GitPod
+  if (h.includes('.gitpod.io')) {
+    return p + '//' + h.replace(/^\d+-/, '3000-');
+  }
+  // Local dev
+  return 'http://localhost:3000';
+})();
+
+// Set custom API URL (for Codespaces manual override)
+function setCustomApi() {
+  const val = document.getElementById('custom-api').value.trim().replace(/\/$/, '');
+  if (val) {
+    localStorage.setItem('fleetos_api', val);
+    location.reload();
+  }
+}
+// Show URL setter if API is unreachable after 3s
+setTimeout(() => {
+  const dot = document.getElementById('api-dot');
+  if (dot && dot.classList.contains('off')) {
+    document.getElementById('api-url-setter').style.display = 'block';
+    document.getElementById('custom-api').value = localStorage.getItem('fleetos_api') || 'http://localhost:3000';
+  }
+}, 3500);
+
+let TOKEN = localStorage.getItem('ft') || null;
+let USER  = JSON.parse(localStorage.getItem('fu') || 'null');
+
+// Clock
+setInterval(() => {
+  const n = new Date(), el = document.getElementById('clock');
+  if (el) el.textContent = [n.getHours(),n.getMinutes(),n.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':');
+}, 1000);
+
+// API health check
+async function checkApi() {
+  const dot = document.getElementById('api-dot');
+  const txt = document.getElementById('api-txt');
+  try {
+    const r = await fetch(`${API}/health`, {signal: AbortSignal.timeout(4000)});
+    const d = await r.json();
+    dot.className = 'api-dot on';
+    txt.textContent = `API CONNECTED — ${(d.mode||'LIVE').toUpperCase()}`;
+  } catch(e) {
+    dot.className = 'api-dot off';
+    txt.textContent = 'API OFFLINE — run: node fleetos-standalone.js';
+  }
+}
+checkApi();
+
+// Fill creds
+function fill(u, p) {
+  document.getElementById('l-user').value = u;
+  document.getElementById('l-pass').value = p;
+}
+
+// Enter key support
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  document.getElementById('l-user').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('l-pass').focus(); });
+  // Auto-login if session exists
+  if (TOKEN && USER) {
+    showApp();
+    loadAllData();
+  }
+});
+
+// Login
+async function doLogin() {
+  const u = document.getElementById('l-user').value.trim();
+  const p = document.getElementById('l-pass').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  const spin = document.getElementById('l-spin');
+  const btnTxt = document.getElementById('l-btn-txt');
+
+  if (!u || !p) { showErr('Please enter username and password.'); return; }
+
+  btn.disabled = true; spin.style.display = 'block'; btnTxt.textContent = 'AUTHENTICATING...';
+  errEl.classList.remove('show');
+
+  try {
+    const res = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: u, password: p})
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.token) {
+      showErr(data.error || 'Invalid credentials. Check username and password.');
+      return;
+    }
+
+    TOKEN = data.token;
+    USER  = data.user;
+    localStorage.setItem('ft', TOKEN);
+    localStorage.setItem('fu', JSON.stringify(USER));
+
+    // Fade out login, show app
+    document.getElementById('login-screen').style.animation = 'fadeOut 0.35s ease forwards';
+    setTimeout(() => { showApp(); loadAllData(); }, 360);
+    showToast(`Welcome, ${USER.full_name || USER.username}`);
+
+  } catch(e) {
+    showErr('Cannot reach server. Make sure backend is running:\n  node fleetos-standalone.js');
+  } finally {
+    btn.disabled = false; spin.style.display = 'none'; btnTxt.textContent = 'ACCESS FLEETOS';
+  }
+}
+
+function showErr(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.classList.add('show');
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('u-name').textContent = (USER.username || 'USER').toUpperCase();
+  document.getElementById('u-role').textContent = (USER.role || 'VIEWER').toUpperCase();
+  document.getElementById('u-av').textContent = (USER.full_name || USER.username || 'U')[0].toUpperCase();
+}
+
+function logout() {
+  TOKEN = null; USER = null;
+  localStorage.removeItem('ft'); localStorage.removeItem('fu');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-screen').style.animation = '';
+  document.getElementById('u-menu').classList.remove('open');
+  document.getElementById('l-user').value = '';
+  document.getElementById('l-pass').value = '';
+  checkApi();
+}
+
+function toggleMenu() { document.getElementById('u-menu').classList.toggle('open'); }
+document.addEventListener('click', e => {
+  if (!e.target.closest('.user-pill') && !e.target.closest('.u-menu'))
+    document.getElementById('u-menu')?.classList.remove('open');
+});
+
+// Tab switching
+function switchTab(id, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+
+// Toast
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// API fetch helper
+async function api(path, opts = {}) {
+  try {
+    const r = await fetch(`${API}${path}`, {
+      ...opts,
+      headers: {'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json', ...(opts.headers || {})}
+    });
+    if (r.status === 401) { logout(); return null; }
+    return r.json();
+  } catch(e) {
+    console.warn('API fetch failed:', path, e.message);
+    return null;
+  }
+}
+
+// Load all data
+function loadAllData() {
+  loadOps();
+  loadAdmin();
+  loadMgmt();
+  setInterval(() => { loadOps(); loadAdmin(); loadMgmt(); }, 60000);
+}
+
+// ═══ OPERATIONS ═══════════════════════════════════════════════
+async function loadOps() {
+  const [sum, queue, loads, alerts] = await Promise.all([
+    api('/api/ops/summary'),
+    api('/api/ops/queue'),
+    api('/api/ops/loads'),
+    api('/api/ops/alerts'),
+  ]);
+
+  // KPIs
+  const d = sum?.data || {};
+  document.getElementById('ops-kpis').innerHTML = `
+    <div class="kpi-card" style="--kc:var(--green)">
+      <div class="kpi-label">Active Drivers</div>
+      <div class="kpi-value">${d.drivers_active||0}</div>
+      <div class="kpi-delta">${d.drivers_in_transit||0} in transit</div>
+    </div>
+    <div class="kpi-card" style="--kc:var(--amber)">
+      <div class="kpi-label">Drivers Ready</div>
+      <div class="kpi-value">${d.drivers_ready||0}</div>
+      <div class="kpi-delta">Available now</div>
+    </div>
+    <div class="kpi-card" style="--kc:var(--blue)">
+      <div class="kpi-label">Loads in Queue</div>
+      <div class="kpi-value">${d.loads_queued||0}</div>
+      <div class="kpi-delta">${d.loads_delivered_today||0} delivered today</div>
+    </div>
+    <div class="kpi-card" style="--kc:var(--red)">
+      <div class="kpi-label">ETA Breaches</div>
+      <div class="kpi-value">${d.active_eta_breaches||0}</div>
+      <div class="kpi-delta">${d.drivers_flagged||0} flagged</div>
+    </div>`;
+
+  // Alert banner
+  const al = alerts?.data;
+  document.getElementById('ops-alert').innerHTML = al?.length
+    ? `<div class="alert-strip"><span class="a-dot">●</span><strong>ALERT:</strong> ${al[0].message||al[0].msg||'Active alert'}</div>`
+    : '';
+
+  // Driver queue
+  const stMap = {on_load:'ba s-tr',checked_in:'bg',READY:'bg',resting:'bb',flagged:'br',checked_out:'',IN_TRANSIT:'ba'};
+  const stLbl = {on_load:'TRANSIT',checked_in:'READY',READY:'READY',resting:'RESTING',flagged:'FLAGGED',checked_out:'OFF DUTY'};
+  if (queue?.data) {
+    document.getElementById('driver-q').innerHTML =
+      queue.data.slice(0,6).map(dr => {
+        const n = dr.full_name || dr.driver_name || '?';
+        const init = n.split(',').map(p=>p.trim()[0]||'').join('').slice(0,2).toUpperCase();
+        const st = dr.checkin_status || dr.driver_status || 'checked_in';
+        return `<div class="driver-item">
+          <div class="d-avatar">${init}</div>
+          <div class="d-info">
+            <div class="d-name">${n}</div>
+            <div class="d-meta">${dr.fleet_number||'--'} · ${dr.hours_remaining||'?'}h · ${dr.current_zone||'--'}</div>
+          </div>
+          <span class="d-st badge ${stMap[st]||'bb'}">${stLbl[st]||st.toUpperCase()}</span>
+        </div>`;
+      }).join('') +
+      '<div style="margin-top:12px"><button class="btn btn-a" style="width:100%">AUTO-ASSIGN LOAD</button></div>';
+    renderDots(queue.data);
+  }
+
+  // Loads table
+  if (loads?.data) {
+    document.getElementById('loads-ct').textContent = loads.data.length + ' LOADS';
+    const pc = {urgent:'var(--red)',high:'var(--amber)',medium:'var(--blue)',low:'var(--text-dim)'};
+    const sb = {in_transit:'ba',queued:'bb',delivered:'bg',assigned:'ba'};
+    document.getElementById('loads-tbl').innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>REF</th><th>CLIENT</th><th>FROM</th><th>TO</th><th>PRIORITY</th><th>STATUS</th><th>RATE</th></tr></thead>
+        <tbody>${loads.data.slice(0,8).map(l=>`<tr>
+          <td><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--amber)">${l.load_ref||l.ref||'--'}</span></td>
+          <td>${l.client_name||l.client||'--'}</td>
+          <td style="font-size:11px;color:var(--text-dim)">${l.origin_zone_name||'--'}</td>
+          <td style="font-size:11px;color:var(--text-dim)">${l.dest_zone_name||'--'}</td>
+          <td><span style="color:${pc[l.priority]||'var(--text-dim)'};font-family:'JetBrains Mono',monospace;font-size:9px">${(l.priority||'--').toUpperCase()}</span></td>
+          <td><span class="badge ${sb[l.load_status]||'bb'}">${(l.load_status||'--').replace('_',' ').toUpperCase()}</span></td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:11px">R ${(l.agreed_rate_rand||l.rate||0).toLocaleString()}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+  }
+}
+
+function renderDots(drivers) {
+  document.querySelectorAll('.map-dot').forEach(d=>d.remove());
+  const pos=[{l:'28%',t:'48%'},{l:'48%',t:'35%'},{l:'61%',t:'58%'},{l:'72%',t:'28%'},{l:'38%',t:'70%'},{l:'55%',t:'22%'}];
+  const cm={on_load:'amber',checked_in:'green',flagged:'red',resting:'blue','IN TRANSIT':'amber',READY:'green',FLAGGED:'red'};
+  const map = document.getElementById('map-inner');
+  drivers.slice(0,6).forEach((dr,i) => {
+    const p=pos[i]||pos[0];
+    const st=dr.checkin_status||dr.driver_status||'checked_in';
+    const c=cm[st]||'green';
+    const dot=document.createElement('div');
+    dot.className=`map-dot`;
+    dot.style.cssText=`left:${p.l};top:${p.t};background:var(--${c});border-color:var(--${c});`;
+    dot.title=`${dr.full_name||dr.driver_name} — ${dr.fleet_number}`;
+    map.appendChild(dot);
+  });
+}
+
+// ═══ ADMINISTRATION ═══════════════════════════════════════════
+async function loadAdmin() {
+  const [log, payroll] = await Promise.all([
+    api('/api/admin/audit-log'),
+    api('/api/admin/payroll/calculate', {method:'POST', body:'{}'}),
+  ]);
+
+  const rows = payroll?.data || [];
+  const totalNet = rows.reduce((s,r)=>s+parseFloat(r.net_payout_rand||0),0);
+  const approved = rows.filter(r=>r.status==='approved').length;
+
+  document.getElementById('admin-kpis').innerHTML = `
+    <div class="kpi-card" style="--kc:var(--amber)">
+      <div class="kpi-label">Audit Events</div>
+      <div class="kpi-value">${log?.count||log?.data?.length||0}</div>
+      <div class="kpi-delta">Auto-timestamped</div>
+    </div>
+    <div class="kpi-card" style="--kc:var(--green)">
+      <div class="kpi-label">Total Net Payroll</div>
+      <div class="kpi-value" style="font-size:22px">R${Math.round(totalNet).toLocaleString()}</div>
+      <div class="kpi-delta">${rows.length} drivers</div>
+    </div>
+    <div class="kpi-card" style="--kc:var(--blue)">
+      <div class="kpi-label">Stubs Approved</div>
+      <div class="kpi-value">${approved}</div>
+      <div class="kpi-delta">of ${rows.length} total</div>
+    </div>
+    <div class="kpi-card" style="--kc:var(--text-dim)">
+      <div class="kpi-label">Compliance Rate</div>
+      <div class="kpi-value" style="color:var(--green)">97%</div>
+      <div class="kpi-delta d-up">▲ 2% vs last month</div>
+    </div>`;
+
+  // Audit log
+  const sc={geofence:'bg',dispatch:'ba',payroll:'bb',cross_check:'br',system:'bb'};
+  if (log?.data) {
+    document.getElementById('audit-log').innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>TIME</th><th>SOURCE</th><th>EVENT</th><th>DESCRIPTION</th></tr></thead>
+        <tbody>${log.data.slice(0,8).map(l=>`<tr>
+          <td><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--amber)">${new Date(l.log_time||l.time).toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'})}</span></td>
+          <td><span class="badge ${sc[l.event_source||l.source]||'bb'}">${(l.event_source||l.source||'SYS').toUpperCase()}</span></td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-mid)">${l.event_type||l.event||'--'}</td>
+          <td style="font-size:11px;color:var(--text-dim)">${l.description||l.desc||'--'}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+  }
+
+  // Payroll
+  const fmt = v => 'R '+parseFloat(v||0).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const ps={approved:'bg',calculated:'ba',draft:'bb',paid:'bg'};
+  if (rows.length) {
+    document.getElementById('payroll-tbl').innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>DRIVER</th><th>TYPE</th><th>TRIPS</th><th>NET PAYOUT</th><th>STATUS</th></tr></thead>
+        <tbody>${rows.map(p=>`<tr>
+          <td><strong style="font-size:12px">${p.full_name||p.driver||'--'}</strong></td>
+          <td style="font-size:11px;color:var(--text-dim)">${(p.employment_type||'').replace('_','-')}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:11px;text-align:center">${p.trips_completed||p.trips||'--'}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--green)">${fmt(p.net_payout_rand||p.net)}</td>
+          <td><span class="badge ${ps[p.status]||'bb'}">${(p.status||'draft').toUpperCase()}</span></td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+  }
+}
+
+async function calcPayroll() {
+  showToast('Recalculating payroll...');
+  await loadAdmin();
+  showToast('✓ Payroll recalculated');
+}
+
+// ═══ MANAGEMENT ═══════════════════════════════════════════════
+async function loadMgmt() {
+  const [cpk, maint, xcheck, sum] = await Promise.all([
+    api('/api/mgmt/cpk'),
+    api('/api/mgmt/maintenance'),
+    api('/api/mgmt/crosscheck'),
+    api('/api/mgmt/dashboard-summary'),
+  ]);
+
+  // KPIs
+  const d = sum?.data || {};
+  document.getElementById('mgmt-kpis').innerHTML = `
+    <div class="kpi-card" style="--kc:var(--amber)">
+      <div class="kpi-label">Fleet Efficiency</div>
+      <div class="kpi-value">${d.fleet_score||82}</div>
+      <div class="kpi-delta d-up">▲ 4pts this month</div>
+    </div>
+    <div class="kpi-card" style="--kc:var(--blue)">
+      <div class="kpi-label">Avg CPK</div>
+      <div class="kpi-value" style="font-size:28px">R${d.avg_cpk||'4.29'}</div>
+      <div class="kpi-delta">${d.routes_flagged||0} routes flagged</div>
+    </div>
+    <div class="kpi-card" style="--kc:var(--red)">
+      <div class="kpi-label">Maint. Alerts</div>
+      <div class="kpi-value">${d.maintenance_critical||0}</div>
+      <div class="kpi-delta d-dn">${d.maintenance_due_soon||0} due soon</div>
+    </div>
+    <div class="kpi-card" style="--kc:var(--red)">
+      <div class="kpi-label">Open Alerts</div>
+      <div class="kpi-value">${d.unacked_alerts||0}</div>
+      <div class="kpi-delta">Require attention</div>
+    </div>`;
+
+  // CPK bars
+  if (cpk?.data) {
+    const maxV = Math.max(...cpk.data.map(r=>parseFloat(r.actual_cpk_rand||r.cpk||0)));
+    document.getElementById('cpk-chart').innerHTML =
+      cpk.data.map(r => {
+        const v = parseFloat(r.actual_cpk_rand||r.cpk||0);
+        const pct = Math.round((v/maxV)*100);
+        const col = r.cpk_flagged ? 'var(--red)' : v<4 ? 'var(--green)' : 'var(--amber)';
+        return `<div class="cpk-row">
+          <div class="cpk-lbl">${(r.route_code||r.route||'ROUTE').replace('RTE-','RTE ')}</div>
+          <div class="cpk-track"><div class="cpk-fill" style="width:${pct}%;background:${col}"></div></div>
+          <div class="cpk-val" style="color:${col}">R${v.toFixed(2)}</div>
+        </div>`;
+      }).join('') +
+      `<div style="margin-top:10px;padding:8px;background:var(--surface2);border-radius:var(--radius);font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:1px">FLEET AVG: R${cpk.fleet_avg_cpk||cpk.fleet_avg||'--'}/km</div>`;
+  }
+
+  // Maintenance
+  if (maint?.data) {
+    const ci = maint.data.filter(m=>m.alert_status!=='ok').length;
+    document.getElementById('maint-ct').textContent = ci + ' ALERTS';
+    const im={overdue:'🔴',critical:'🔴',due_soon:'🟡',upcoming:'🟡',ok:'🟢'};
+    const bm={overdue:'background:var(--red-dim)',critical:'background:var(--red-dim)',due_soon:'background:var(--amber-dim)',upcoming:'background:var(--amber-dim)',ok:'background:var(--green-dim)'};
+    document.getElementById('maint-list').innerHTML = maint.data.slice(0,5).map(m=>`
+      <div class="maint-item">
+        <div class="m-icon" style="${bm[m.alert_status]||''}">${im[m.alert_status]||'⚪'}</div>
+        <div class="m-info">
+          <div class="m-name">${m.fleet_number||m.vehicle||'--'} — ${m.service_name||m.service||'Service'}</div>
+          <div class="m-detail">${m.primary_driver||'--'} · ${m.next_due_date||'--'}</div>
+        </div>
+        <div class="m-km" style="color:${m.km_remaining<0?'var(--red)':m.km_remaining<1000?'var(--amber)':'var(--green)'}">
+          ${m.km_remaining<0?Math.abs(m.km_remaining)+' km<br><span style=\'font-size:8px\'>OVERDUE</span>':m.km_remaining+' km'}
+        </div>
+      </div>`).join('');
+  }
+
+  // Cross-check
+  if (xcheck?.data) {
+    document.getElementById('xcheck-ct').textContent = xcheck.data.length + ' OPEN';
+    const sc={critical:'var(--red)',warning:'var(--amber)',info:'var(--blue)'};
+    const sb={critical:'br',warning:'ba',info:'bb'};
+    document.getElementById('xcheck-list').innerHTML = xcheck.data.slice(0,4).map(x=>`
+      <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span class="badge ${sb[x.severity]||'ba'}">${(x.severity||'warning').toUpperCase()}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text-dim)">${(x.check_type||x.type||'').replace(/_/g,' ').toUpperCase()}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-mid);line-height:1.5">${x.finding||x.msg||'--'}</div>
+        ${x.recommendation?`<div style="font-size:10px;color:var(--text-dim);margin-top:3px;font-style:italic">${x.recommendation}</div>`:''}
+      </div>`).join('');
+  }
+}
+</script>
+</body>
+</html>
